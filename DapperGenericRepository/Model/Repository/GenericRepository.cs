@@ -16,14 +16,15 @@ namespace DapperGenericRepository.Model.Repository
             _columnNames = typeof(T).GetProperties().Where(p => p.Name != "Id").Select(p => p.Name).ToList();
         }
 
-        public async Task<bool> InsertAsync(T model)
+        public async Task<int> InsertAsync(T model)
         {
-            var query = $"INSERT INTO {_tableName} ({string.Join(',', _columnNames)}) VALUES (@{string.Join(", @", _columnNames)})";
+            var query = $"INSERT INTO {_tableName} ({string.Join(',', _columnNames)}) VALUES (@{string.Join(", @", _columnNames)}); SELECT CAST(SCOPE_IDENTITY() as int)";
 
             using (var connection = _context.CreateConnection())
             {
-                var result  = await connection.ExecuteAsync(query, model);
-                return result > 0;
+                var id = await connection.QueryFirstOrDefaultAsync<int>(query, model);
+
+                return id;
             }
         }
 
@@ -40,22 +41,22 @@ namespace DapperGenericRepository.Model.Repository
 
         public async Task<T?> GetByIdAsync(int id)
         {
-            var query = $"SELECT * FROM {_tableName} WHERE id = {id}";
+            var query = $"SELECT * FROM {_tableName} WHERE id = @Id";
 
             using (var connection = _context.CreateConnection())
             {
-                var result = await connection.QuerySingleOrDefaultAsync<T>(query);
+                var result = await connection.QuerySingleOrDefaultAsync<T>(query, new { Id = id });
                 return result;
             }
         }
 
         public async Task<bool> DeleteAsync(int id)
         {
-            var query = $"DELETE FROM {_tableName} WHERE id = {id}";      
+            var query = $"DELETE FROM {_tableName} WHERE id = @Id";      
 
             using (var connection = _context.CreateConnection())
             {
-                var result = await connection.ExecuteAsync(query);
+                var result = await connection.ExecuteAsync(query, new { Id = id });
                 return result > 0;
             }
         }

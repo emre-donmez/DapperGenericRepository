@@ -37,10 +37,15 @@ namespace DapperGenericRepository.Controllers
         [HttpPost]
         public async Task<IActionResult> Create(User model)
         {
-            var result = await _repository.InsertAsync(model);
+            var insertedId = await _repository.InsertAsync(model);
 
-            return result ? CreatedAtAction(nameof(Get), new { id = model.Id }, model)
-                          : StatusCode(StatusCodes.Status500InternalServerError);
+            if (insertedId != 0)
+            {
+                model.Id = insertedId;
+                return CreatedAtAction(nameof(Get), new { id = insertedId }, model);
+            }
+
+            return StatusCode(StatusCodes.Status500InternalServerError);
         }
 
         [HttpPut("{id}")]
@@ -67,7 +72,6 @@ namespace DapperGenericRepository.Controllers
             var result = await _repository.DeleteAsync(id);
 
             return result ? Ok() : StatusCode(StatusCodes.Status500InternalServerError);
-
         }
     }
 }
